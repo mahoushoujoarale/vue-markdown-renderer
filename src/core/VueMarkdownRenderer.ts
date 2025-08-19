@@ -9,10 +9,9 @@ import { Fragment } from "vue/jsx-runtime";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import remarkParse from "remark-parse";
 import remarkRehype from "remark-rehype";
-import remarkGfm from "remark-gfm";
+import remarkGfm, { Options as RemarkGfmOptions } from "remark-gfm";
 import { VFile } from "vfile";
 import { unified, type Plugin } from "unified";
-import { segmentTextComponents } from "./segmentText";
 import { ShikiProvider } from "./ShikiProvider";
 import { Langs } from "./highlight/shiki";
 import {
@@ -90,6 +89,10 @@ export default defineComponent({
       type: Object as PropType<RemarkRehypeOptions>,
       default: () => ({ allowDangerousHtml: true }),
     },
+    remarkGfmOptions: {
+      type: Object as PropType<RemarkGfmOptions>,
+      default: () => ({}),
+    },
   },
   errorCaptured(e) {
     console.error("VueMarkdownRenderer captured error", e);
@@ -97,10 +100,15 @@ export default defineComponent({
   setup(props) {
     provideProxyProps(props);
     const computedProcessor = computed(() => {
-      const { rehypePlugins, remarkPlugins, remarkRehypeOptions } = props;
+      const {
+        rehypePlugins,
+        remarkPlugins,
+        remarkRehypeOptions,
+        remarkGfmOptions,
+      } = props;
       const processor = unified()
         .use(remarkParse)
-        .use(remarkGfm)
+        .use(remarkGfm, remarkGfmOptions)
         .use(remarkComponentCodeBlock)
         .use(remarkEchartCodeBlock)
         .use(remarkPlugins)
@@ -118,7 +126,6 @@ export default defineComponent({
     const generateVueNode = (tree: any) => {
       const vueVnode = toJsxRuntime(tree, {
         components: {
-          ...segmentTextComponents,
           ComponentCodeBlock,
           EchartCodeBlock,
           pre: ShikiStreamCodeBlock,
