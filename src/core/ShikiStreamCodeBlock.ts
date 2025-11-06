@@ -39,37 +39,56 @@ export const ShikiStreamCodeBlock = defineComponent({
     const observedEl = ref<HTMLElement | null>(null);
     let io: IntersectionObserver | null = null;
 
-    onMounted(() => {
-      // 不支持 IntersectionObserver 时直接启用高亮
-      if (
-        typeof window === "undefined" ||
-        !("IntersectionObserver" in window)
-      ) {
+    // 检查元素是否在视口内的函数
+    const checkInView = (element: HTMLElement) => {
+      const rect = element.getBoundingClientRect();
+      const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+      const windowWidth = window.innerWidth || document.documentElement.clientWidth;
+      
+      // 考虑 rootMargin: "100px 0px" 的影响
+      return (
+        rect.top < windowHeight + 100 &&
+        rect.bottom > -100 &&
+        rect.left < windowWidth &&
+        rect.right > 0
+      );
+    };
+
+    // 设置观察器的函数
+    const setupObserver = (element: HTMLElement) => {
+      // 不支持 IntersectionObserver 或服务端渲染时直接启用高亮
+      if (typeof window === "undefined" || !("IntersectionObserver" in window)) {
         isInView.value = true;
         return;
       }
+
+      // 立即检查是否在视口内
+      if (checkInView(element)) {
+        isInView.value = true;
+        return;
+      }
+
+      // 创建观察器
       io = new IntersectionObserver(
         (entries) => {
           const entry = entries[0];
-          if (entry && entry.isIntersecting) {
+          if (entry?.isIntersecting) {
             isInView.value = true;
-            if (observedEl.value) io?.unobserve(observedEl.value);
             io?.disconnect();
             io = null;
           }
         },
         {
           root: null,
-          // 预加载阈值，提前一点渲染，避免滚动到视口才闪烁
-          rootMargin: "100px 0px",
+          rootMargin: "100px 0px", // 预加载阈值，提前一点渲染
           threshold: 0.01,
         }
       );
-      if (observedEl.value) io.observe(observedEl.value);
-    });
+
+      io.observe(element);
+    };
 
     onBeforeUnmount(() => {
-      if (observedEl.value && io) io.unobserve(observedEl.value);
       io?.disconnect();
       io = null;
     });
@@ -149,8 +168,11 @@ export const ShikiStreamCodeBlock = defineComponent({
           "pre",
           {
             ref: (el: Element | ComponentPublicInstance | null) => {
-              observedEl.value = el as HTMLElement | null;
-              if (el && io) io.observe(el as HTMLElement);
+              const element = el as HTMLElement | null;
+              if (element && element !== observedEl.value) {
+                observedEl.value = element;
+                setupObserver(element);
+              }
             },
           },
           [h("code", codeChunk)]
