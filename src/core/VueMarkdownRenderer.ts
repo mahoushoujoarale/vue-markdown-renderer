@@ -12,8 +12,7 @@ import remarkRehype from "remark-rehype";
 import remarkGfm, { Options as RemarkGfmOptions } from "remark-gfm";
 import { VFile } from "vfile";
 import { unified, type Plugin } from "unified";
-import { ShikiProvider } from "./ShikiProvider";
-import { Langs } from "./highlight/shiki";
+import rehypeHighlight from "rehype-highlight";
 import {
   remarkComponentCodeBlock,
   ComponentCodeBlock,
@@ -22,7 +21,6 @@ import {
   remarkEchartCodeBlock,
   EchartCodeBlock,
 } from "./plugin/remarkEchartCodeBlock.js";
-import { ShikiStreamCodeBlock } from "./ShikiStreamCodeBlock.js";
 import { provideProxyProps } from "./useProxyProps.js";
 
 interface RemarkRehypeOptions {
@@ -39,12 +37,6 @@ function jsx(type: any, props: Record<any, any>, key: any) {
   if (type === Fragment) {
     return h(type, props, children);
   } else if (typeof type !== "string") {
-    if (type === ShikiStreamCodeBlock) {
-      // 使用json字符串作为prop的目的是防止ShikiStreamCodeBlock组件不必要的re-render
-      const nodeJSON = JSON.stringify(props.node);
-      delete props.node;
-      return h(type, { ...props, nodeJSON });
-    }
     return h(type, props);
   }
   return h(type, props, children);
@@ -74,7 +66,7 @@ export default defineComponent({
       type: Object as PropType<Component>,
     },
     extraLangs: {
-      type: Array as PropType<Langs[]>,
+      type: Array as PropType<string[]>,
       default: () => [],
     },
     rehypePlugins: {
@@ -113,6 +105,7 @@ export default defineComponent({
         .use(remarkEchartCodeBlock)
         .use(remarkPlugins)
         .use(remarkRehype, remarkRehypeOptions)
+        .use(rehypeHighlight, true)
         .use(rehypePlugins);
       return processor;
     });
@@ -128,7 +121,6 @@ export default defineComponent({
         components: {
           ComponentCodeBlock,
           EchartCodeBlock,
-          pre: ShikiStreamCodeBlock,
         },
         Fragment,
         jsx: jsx,
@@ -146,9 +138,7 @@ export default defineComponent({
     });
 
     return () => {
-      return h(ShikiProvider, null, {
-        default: () => computedVNode.value,
-      });
+      return computedVNode.value;
     };
   },
 });

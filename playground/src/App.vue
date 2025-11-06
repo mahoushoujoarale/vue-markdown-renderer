@@ -3,7 +3,8 @@ import { VueMarkdownRenderer } from "../../src";
 import { onMounted, ref, shallowRef } from "vue";
 import "./animation.css";
 import Button from "./Button.vue";
-import java from "@shikijs/langs/java";
+import "highlight.js/styles/github.css";
+import "highlight.js/styles/github-dark.css";
 import "katex/dist/katex.min.css";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -107,13 +108,10 @@ function changeTheme() {
   }
   switchTheme.value = switchTheme.value === "dark" ? "light" : "dark";
 }
-const remarkPlugins = [remarkMath];
-const rehypePlugins = [rehypeKatex];
 const componentsMap = {
   BarChart,
   Placeholder,
 };
-const extraLangs = [java];
 const codeBlockRenderer = CodeBlockRendererComp;
 </script>
 
@@ -158,10 +156,9 @@ const codeBlockRenderer = CodeBlockRendererComp;
       >
         <VueMarkdownRenderer
           :source="mdText"
-          :theme="switchTheme === 'dark' ? 'light' : 'dark'"
+          :theme="switchTheme"
           :components-map
           :code-block-renderer
-          :extra-langs
           :remark-plugins
           :rehype-plugins
           :echart-renderer="EchartRenderer"

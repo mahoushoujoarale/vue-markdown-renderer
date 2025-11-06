@@ -54,7 +54,8 @@ const EchartWrapper = defineComponent({
   props: ["optionJson"],
   setup(props) {
     const proxyProps = useProxyProps();
-    const echartRenderer = computed(() => proxyProps.echartRenderer);
+    const echartRenderer = computed(() => proxyProps.echartRenderer || {});
+
     return () => {
       if (!echartRenderer.value) {
         throw new Error(`echartRenderer must be provided`);
@@ -87,7 +88,7 @@ export const EchartCodeBlock = defineComponent({
   setup(props) {
     const proxyProps = useProxyProps();
     const echartRendererPlaceholder = computed(
-      () => proxyProps.echartRendererPlaceholder
+      () => proxyProps.echartRendererPlaceholder || {}
     );
 
     return () => {

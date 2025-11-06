@@ -1,15 +1,18 @@
 import { inject, provide } from "vue";
-import { configPropsKey } from "./symbol.js";
+import type { Component } from "vue";
 
-export function provideProxyProps(props: any) {
-  const proxy = new Proxy(props, {
-    get(target, key) {
-      return Reflect.get(target, key);
-    },
-  });
-  provide(configPropsKey, proxy);
+const configPropsKey = Symbol("configProps");
+
+export interface ProxyProps {
+  componentsMap?: Record<string, Component>;
+  echartRenderer?: Component;
+  echartRendererPlaceholder?: Component;
+}
+
+export function provideProxyProps(props: ProxyProps) {
+  provide(configPropsKey, props);
 }
 
 export function useProxyProps() {
-  return inject(configPropsKey)!;
+  return inject<ProxyProps>(configPropsKey)!;
 }

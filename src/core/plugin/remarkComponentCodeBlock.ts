@@ -79,7 +79,9 @@ export const ComponentCodeBlock = defineComponent({
   },
   setup(props) {
     const proxyProps = useProxyProps();
-    const computedComponentsMap = computed(() => proxyProps.componentsMap);
+    const computedComponentsMap = computed(
+      () => proxyProps.componentsMap || {}
+    );
 
     return () => {
       const node = props.node;
