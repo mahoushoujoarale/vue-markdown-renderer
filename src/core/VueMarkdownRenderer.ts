@@ -22,6 +22,7 @@ import {
   EchartCodeBlock,
 } from "./plugin/remarkEchartCodeBlock.js";
 import { provideProxyProps } from "./useProxyProps.js";
+import CodeBlock from "./CodeBlock";
 
 interface RemarkRehypeOptions {
   allowDangerousHtml?: boolean;
@@ -98,6 +99,7 @@ export default defineComponent({
         remarkRehypeOptions,
         remarkGfmOptions,
       } = props;
+
       const processor = unified()
         .use(remarkParse)
         .use(remarkGfm, remarkGfmOptions)
@@ -127,6 +129,7 @@ export default defineComponent({
         components: {
           ComponentCodeBlock,
           EchartCodeBlock,
+          pre: CodeBlock,
         },
         Fragment,
         jsx: jsx,

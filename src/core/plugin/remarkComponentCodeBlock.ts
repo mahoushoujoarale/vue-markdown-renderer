@@ -5,6 +5,7 @@ import { useProxyProps } from "../useProxyProps.js";
 export const remarkComponentCodeBlock = () => {
   return (tree) => {
     visit(tree, "code", (node, index, parent) => {
+      // 只处理 component-json 类型的代码块
       if (node.lang === "component-json") {
         if (!node.meta) {
           // 默认的placeholder

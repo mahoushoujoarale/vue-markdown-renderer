@@ -7,6 +7,7 @@ export interface ProxyProps {
   componentsMap?: Record<string, Component>;
   echartRenderer?: Component;
   echartRendererPlaceholder?: Component;
+  codeBlockRenderer?: Component;
 }
 
 export function provideProxyProps(props: ProxyProps) {
