@@ -157,10 +157,10 @@ const codeBlockRenderer = CodeBlockRendererComp;
         <VueMarkdownRenderer
           :source="mdText"
           :theme="switchTheme"
-          :components-map
-          :code-block-renderer
-          :remark-plugins
-          :rehype-plugins
+          :components-map="componentsMap"
+          :code-block-renderer="codeBlockRenderer"
+          :remark-plugins="[remarkMath]"
+          :rehype-plugins="[rehypeKatex]"
           :echart-renderer="EchartRenderer"
           :echart-renderer-placeholder="Placeholder"
         ></VueMarkdownRenderer>

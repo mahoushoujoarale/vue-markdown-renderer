@@ -105,7 +105,13 @@ export default defineComponent({
         .use(remarkEchartCodeBlock)
         .use(remarkPlugins)
         .use(remarkRehype, remarkRehypeOptions)
-        .use(rehypeHighlight, true)
+        .use(rehypeHighlight, {
+          detect: true,
+          ignoreMissing: true,
+          aliases: {
+            xml: "vue",
+          },
+        })
         .use(rehypePlugins);
       return processor;
     });
