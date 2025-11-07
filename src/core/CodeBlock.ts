@@ -88,15 +88,13 @@ export default defineComponent({
         });
 
         // 将 highlightVnode 包装在 pre 元素中
-        const wrappedVnode = h("pre", { class: props.node.className }, [highlightVnode]);
+        const wrappedVnode = h("pre", { class: props.node.className }, [
+          highlightVnode,
+        ]);
 
         return h(customRenderer, {
           language,
           highlightVnode: wrappedVnode,
-          nodeJson: JSON.stringify(codeNode),
-          preNode: props.node,
-          className: codeNode.properties?.className || null,
-          preClassName: props.node?.className,
         });
       }
 
