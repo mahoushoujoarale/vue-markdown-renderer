@@ -1,6 +1,6 @@
 {
   "name": "@superarale/vue-markdown-renderer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Tranform markdown string to vue component with `mdast-> hast-> vue node`",
   "exports": {
     ".": {
@@ -47,6 +47,7 @@
     "hast-util-to-jsx-runtime": "^2.3.6",
     "highlight.js": "^11.11.1",
     "rehype-highlight": "^7.0.2",
+    "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "remark-rehype": "^11.1.2",

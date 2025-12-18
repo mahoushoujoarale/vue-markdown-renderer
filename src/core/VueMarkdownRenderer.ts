@@ -13,6 +13,7 @@ import remarkGfm, { Options as RemarkGfmOptions } from "remark-gfm";
 import { VFile } from "vfile";
 import { unified, type Plugin } from "unified";
 import rehypeHighlight from "rehype-highlight";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import {
   remarkComponentCodeBlock,
   ComponentCodeBlock,
@@ -107,6 +108,19 @@ export default defineComponent({
         .use(remarkEchartCodeBlock)
         .use(remarkPlugins)
         .use(remarkRehype, remarkRehypeOptions)
+        .use(rehypeSanitize, {
+          ...defaultSchema,
+          tagNames: [...(defaultSchema.tagNames || []), "input"],
+          attributes: {
+            ...defaultSchema.attributes,
+            input: [
+              ...(defaultSchema.attributes?.input || []),
+              ["type", "checkbox"],
+              ["checked"],
+              ["disabled"],
+            ],
+          },
+        })
         .use(rehypeHighlight, {
           detect: true,
           ignoreMissing: true,
