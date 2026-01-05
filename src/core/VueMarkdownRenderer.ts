@@ -14,6 +14,10 @@ import { VFile } from "vfile";
 import { unified, type Plugin } from "unified";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import rehypeKatex from "rehype-katex";
+import rehypeExternalLinks from "rehype-external-links";
+import remarkMath from "remark-math";
+import "katex/dist/katex.min.css";
 import {
   remarkComponentCodeBlock,
   ComponentCodeBlock,
@@ -24,9 +28,9 @@ import {
 } from "./plugin/remarkEchartCodeBlock.js";
 import { provideProxyProps } from "./useProxyProps.js";
 import CodeBlock from "./CodeBlock";
+import rehypeRaw from "rehype-raw";
 
 interface RemarkRehypeOptions {
-  allowDangerousHtml?: boolean;
   [key: string]: any;
 }
 
@@ -106,8 +110,10 @@ export default defineComponent({
         .use(remarkGfm, remarkGfmOptions)
         .use(remarkComponentCodeBlock)
         .use(remarkEchartCodeBlock)
+        .use(remarkMath)
         .use(remarkPlugins)
         .use(remarkRehype, remarkRehypeOptions)
+        .use(rehypeRaw)
         .use(rehypeSanitize, {
           ...defaultSchema,
           tagNames: [...(defaultSchema.tagNames || []), "input"],
@@ -121,6 +127,12 @@ export default defineComponent({
             ],
           },
         })
+        .use(rehypeKatex, {
+          throwOnError: true,
+          strict: false,
+          errorColor: "inherit",
+        })
+        .use(rehypeExternalLinks, { target: "_blank", rel: ["nofollow"] })
         .use(rehypeHighlight, {
           detect: true,
           ignoreMissing: true,
