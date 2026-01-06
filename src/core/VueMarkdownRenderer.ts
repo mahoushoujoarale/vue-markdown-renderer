@@ -29,6 +29,7 @@ import {
 import { provideProxyProps } from "./useProxyProps.js";
 import CodeBlock from "./CodeBlock";
 import rehypeRaw from "rehype-raw";
+import remarkThink from "./plugin/remarkThink.js";
 
 interface RemarkRehypeOptions {
   [key: string]: any;
@@ -108,11 +109,25 @@ export default defineComponent({
       const processor = unified()
         .use(remarkParse)
         .use(remarkGfm, remarkGfmOptions)
+        .use(remarkThink)
         .use(remarkComponentCodeBlock)
         .use(remarkEchartCodeBlock)
         .use(remarkMath)
         .use(remarkPlugins)
-        .use(remarkRehype, remarkRehypeOptions)
+        .use(remarkRehype, {
+          ...remarkRehypeOptions,
+          handlers: {
+            ...(remarkRehypeOptions?.handlers || {}),
+            think(state, node) {
+              return {
+                type: "element",
+                tagName: "div",
+                properties: { className: ["mc-think-block"] },
+                children: node.children,
+              };
+            },
+          },
+        })
         .use(rehypeRaw)
         .use(rehypeSanitize, {
           ...defaultSchema,
@@ -125,6 +140,7 @@ export default defineComponent({
               ["checked"],
               ["disabled"],
             ],
+            div: [...(defaultSchema.attributes?.div || []), ["className"]],
           },
         })
         .use(rehypeKatex, {

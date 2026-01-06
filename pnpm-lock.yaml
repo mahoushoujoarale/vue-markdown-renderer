@@ -57,6 +57,9 @@ importers:
         specifier: ^3.2.0
         version: 3.5.17(typescript@5.8.3)
     devDependencies:
+      '@types/unist':
+        specifier: ^3.0.3
+        version: 3.0.3
       prettier:
         specifier: ^3.5.2
         version: 3.6.2
