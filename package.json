@@ -1,6 +1,6 @@
 {
   "name": "@superarale/vue-markdown-renderer",
-  "version": "0.1.2",
+  "version": "0.1.3-alpha",
   "description": "Tranform markdown string to vue component with `mdast-> hast-> vue node`",
   "exports": {
     ".": {
