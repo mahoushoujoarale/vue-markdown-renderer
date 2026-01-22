@@ -240,21 +240,6 @@ const VueMarkdownRenderer = defineComponent({
         .use(rehypeSanitize, {
           ...defaultSchema,
           ...rehypeSanitizeSchema,
-          tagNames: [
-            ...(defaultSchema.tagNames || []),
-            "input",
-            ...(rehypeSanitizeSchema?.tagNames || []),
-          ],
-          attributes: {
-            ...defaultSchema.attributes,
-            input: [
-              ...(defaultSchema.attributes?.input || []),
-              ["type", "checkbox"],
-              ["checked"],
-              ["disabled"],
-            ],
-            ...rehypeSanitizeSchema?.attributes,
-          },
         })
         .use(rehypeKatex, {
           throwOnError: true,
