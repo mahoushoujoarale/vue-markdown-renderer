@@ -6,8 +6,19 @@ export const remarkEchartCodeBlock = () => {
   return (tree) => {
     visit(tree, "code", (node, index, parent) => {
       if (node.lang === "echarts") {
-        if (!node.meta) {
-          // 默认的placeholder
+        try {
+          const data = JSON.parse(node.value);
+          const echartCodeBlock = {
+            type: "EchartCodeBlock",
+            data: {
+              hName: "EchartCodeBlock",
+              hProperties: {
+                optionJson: JSON.stringify(data),
+              },
+            },
+          };
+          parent.children.splice(index, 1, echartCodeBlock);
+        } catch (e) {
           const placeholder = {
             type: "EchartCodeBlock",
             data: {
@@ -19,37 +30,11 @@ export const remarkEchartCodeBlock = () => {
           };
           parent.children.splice(index, 1, placeholder);
         }
-        try {
-          const meta = JSON.parse(node.meta);
-          try {
-            const data = JSON.parse(node.value);
-            const echartCodeBlock = {
-              type: "EchartCodeBlock",
-              data: {
-                hName: "EchartCodeBlock",
-                hProperties: data,
-              },
-            };
-            parent.children.splice(index, 1, echartCodeBlock);
-          } catch (e) {
-            const placeholder = {
-              type: "EchartCodeBlock",
-              data: {
-                hName: "EchartCodeBlock",
-                hProperties: {
-                  placeholder: meta.placeholder,
-                },
-              },
-            };
-            parent.children.splice(index, 1, placeholder);
-          }
-        } catch (e) {}
       }
     });
   };
 };
 
-// 使用json字符串作为prop的目的是防止组件(props.component)不必要的re-render
 const EchartWrapper = defineComponent({
   props: ["optionJson"],
   setup(props) {
@@ -92,14 +77,13 @@ export const EchartCodeBlock = defineComponent({
     );
 
     return () => {
-      const node = props.node;
-      const placeholder = node.properties.placeholder;
-      if (placeholder) {
+      const properties = props.node.properties;
+      if (properties.placeholder) {
         return h(echartRendererPlaceholder.value || Placeholder);
       }
 
       return h(EchartWrapper, {
-        optionJson: JSON.stringify(node.properties),
+        optionJson: properties.optionJson,
       });
     };
   },

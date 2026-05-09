@@ -33,7 +33,7 @@ function jsx(type: any, props: Record<any, any>, key: any) {
   if (type === Fragment) {
     return h(type, props, children);
   } else if (typeof type !== "string") {
-    return h(type, props);
+    return h(type, props, { default: () => children });
   }
   return h(type, props, children);
 }

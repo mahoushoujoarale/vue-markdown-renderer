@@ -5,20 +5,34 @@ import { useProxyProps } from "../useProxyProps.js";
 export const remarkComponentCodeBlock = () => {
   return (tree) => {
     visit(tree, "code", (node, index, parent) => {
-      // 只处理 component-json 类型的代码块
       if (node.lang === "component-json") {
         if (!node.meta) {
-          // 默认的placeholder
-          const placeholder = {
-            type: "ComponentCodeBlock",
-            data: {
-              hName: "ComponentCodeBlock",
-              hProperties: {
-                placeholder: "vue-mdr-default-component-placeholder-key",
+          try {
+            const data = JSON.parse(node.value);
+            const componentCodeBlock = {
+              type: "ComponentCodeBlock",
+              data: {
+                hName: "ComponentCodeBlock",
+                hProperties: {
+                  componentDataJson: JSON.stringify(data),
+                },
               },
-            },
-          };
-          parent.children.splice(index, 1, placeholder);
+            };
+            parent.children.splice(index, 1, componentCodeBlock);
+            return;
+          } catch (e) {
+            const placeholder = {
+              type: "ComponentCodeBlock",
+              data: {
+                hName: "ComponentCodeBlock",
+                hProperties: {
+                  placeholder: "vue-mdr-default-component-placeholder-key",
+                },
+              },
+            };
+            parent.children.splice(index, 1, placeholder);
+            return;
+          }
         }
         try {
           const meta = JSON.parse(node.meta);
@@ -28,7 +42,9 @@ export const remarkComponentCodeBlock = () => {
               type: "ComponentCodeBlock",
               data: {
                 hName: "ComponentCodeBlock",
-                hProperties: data,
+                hProperties: {
+                  componentDataJson: JSON.stringify(data),
+                },
               },
             };
             parent.children.splice(index, 1, componentCodeBlock);
@@ -50,7 +66,6 @@ export const remarkComponentCodeBlock = () => {
   };
 };
 
-// 使用json字符串作为prop的目的是防止组件(props.component)不必要的re-render
 const ComponentWrapper = defineComponent({
   props: ["component", "componetPropsJson"],
   setup(props) {
@@ -85,28 +100,27 @@ export const ComponentCodeBlock = defineComponent({
     );
 
     return () => {
-      const node = props.node;
-      const placeholder = node.properties.placeholder;
-      if (placeholder) {
-        const target = computedComponentsMap.value[placeholder];
+      const properties = props.node.properties;
+      if (properties.placeholder) {
+        const target = computedComponentsMap.value[properties.placeholder];
         if (target === undefined) {
           console.warn(
-            `${placeholder} does not exist in componentsMap, the built-in 'Placeholder' will be used instead.`
+            `${properties.placeholder} does not exist in componentsMap, the built-in 'Placeholder' will be used instead.`
           );
         }
         return h(target || Placeholder);
       }
 
-      const component = computedComponentsMap.value[node.properties.type];
+      const componentData = JSON.parse(properties.componentDataJson ?? "{}");
+      const component = computedComponentsMap.value[componentData.type];
       if (component === undefined) {
         throw new Error(
-          `${node.properties.type} not exist in componentsMap:${JSON.stringify(computedComponentsMap.value, null, 2)}`
+          `${componentData.type} not exist in componentsMap:${JSON.stringify(computedComponentsMap.value, null, 2)}`
         );
       }
-      const componentProps = node.properties.props;
       return h(ComponentWrapper, {
         component,
-        componetPropsJson: JSON.stringify(componentProps),
+        componetPropsJson: JSON.stringify(componentData.props),
       });
     };
   },

@@ -6,6 +6,7 @@ import {
   type Component,
   type DefineComponent,
   provide,
+  reactive,
 } from "vue";
 import { Fragment } from "vue/jsx-runtime";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
@@ -14,12 +15,9 @@ import remarkRehype from "remark-rehype";
 import remarkGfm, { Options as RemarkGfmOptions } from "remark-gfm";
 import { unified, type Plugin } from "unified";
 import rehypeHighlight from "rehype-highlight";
-import rehypeSanitize from "rehype-sanitize";
-import type { Schema } from "hast-util-sanitize";
 import rehypeKatex from "rehype-katex";
 import rehypeExternalLinks from "rehype-external-links";
 import remarkMath from "remark-math";
-import deepmerge from "deepmerge";
 import "katex/dist/katex.min.css";
 import {
   remarkComponentCodeBlock,
@@ -32,12 +30,13 @@ import {
 import { remarkCompleteTable } from "./plugin/remarkCompleteTable.js";
 import { rehypeCodeBlock } from "./plugin/rehypeCodeBlock.js";
 import { rehypeTable } from "./plugin/rehypeTable.js";
+import { rehypeSanitizeHtml } from "./plugin/rehypeSanitizeHtml.js";
+import { rehypeRestoreCustomTags } from "./plugin/rehypeRestoreCustomTags.js";
 import { provideProxyProps } from "./useProxyProps.js";
 import CodeBlock from "./CodeBlock.js";
 import { TableRenderer } from "./components/TableRenderer.js";
 import rehypeRaw from "rehype-raw";
 import { SegmentedParser } from "./segmenter.js";
-import { buildSanitizeSchema } from "./buildSanitizeSchema.js";
 import { markdownRendererOptionsKey } from "./symbol.js";
 import type { ResolvedRendererOptions } from "./apiOptions.js";
 
@@ -50,7 +49,9 @@ function jsx(type: any, props: Record<any, any>, key: any) {
   delete props.children;
   if (arguments.length > 2) props.key = key;
   if (type === Fragment) return h(type, props, children);
-  if (typeof type !== "string") return h(type, props);
+  if (typeof type !== "string")
+    return h(type, props, { default: () => children });
+  delete props.node;
   return h(type, props, children);
 }
 
@@ -64,6 +65,9 @@ const VueMarkdownRenderer = defineComponent({
     theme: {
       type: String as PropType<"light" | "dark">,
       required: true,
+    },
+    nodeRenderers: {
+      type: Object as PropType<Record<string, Component>>,
     },
     componentsMap: {
       type: Object as PropType<Record<string, Component>>,
@@ -103,10 +107,6 @@ const VueMarkdownRenderer = defineComponent({
       type: Object as PropType<RemarkGfmOptions>,
       default: () => ({}),
     },
-    rehypeSanitizeSchema: {
-      type: Object as PropType<Partial<Schema>>,
-      default: () => ({}),
-    },
   },
   errorCaptured(e) {
     console.error("VueMarkdownRenderer captured error", e);
@@ -114,9 +114,16 @@ const VueMarkdownRenderer = defineComponent({
   setup(props) {
     provideProxyProps(props);
 
-    const resolvedOptions = computed<ResolvedRendererOptions>(() => ({
+    const resolvedOptions = reactive<ResolvedRendererOptions>({
       renderers: {
-        nodes: props.componentsMap ?? {},
+        nodes: {},
+        components: {},
+      },
+    });
+
+    const updateOptions = () => {
+      resolvedOptions.renderers = {
+        nodes: props.nodeRenderers ?? props.componentsMap ?? {},
         components: props.componentsMap ?? {},
         codeBlock: props.codeBlockRenderer,
         mermaid: props.mermaidRenderer,
@@ -127,9 +134,10 @@ const VueMarkdownRenderer = defineComponent({
             }
           : undefined,
         table: props.tableRenderer,
-      },
-    }));
-    provide(markdownRendererOptionsKey, resolvedOptions.value);
+      };
+    };
+    updateOptions();
+    provide(markdownRendererOptionsKey, resolvedOptions);
 
     const computedProcessor = computed(() => {
       const {
@@ -137,7 +145,6 @@ const VueMarkdownRenderer = defineComponent({
         remarkPlugins,
         remarkRehypeOptions,
         remarkGfmOptions,
-        rehypeSanitizeSchema,
       } = props;
       return unified()
         .use(remarkParse)
@@ -149,22 +156,20 @@ const VueMarkdownRenderer = defineComponent({
         .use(remarkPlugins)
         .use(remarkRehype, remarkRehypeOptions)
         .use(rehypeRaw)
-        .use(
-          rehypeSanitize,
-          deepmerge(buildSanitizeSchema(), rehypeSanitizeSchema ?? {})
-        )
+        .use(rehypeRestoreCustomTags)
+        .use(rehypeSanitizeHtml)
         .use(rehypeKatex, {
           throwOnError: true,
           strict: false,
           errorColor: "inherit",
         })
         .use(rehypeExternalLinks, { target: "_blank", rel: ["nofollow"] })
+        .use(rehypeCodeBlock)
         .use(rehypeHighlight, {
           detect: true,
           ignoreMissing: true,
           aliases: { xml: "vue" },
         })
-        .use(rehypeCodeBlock)
         .use(rehypeTable)
         .use(rehypePlugins);
     });
@@ -179,6 +184,8 @@ const VueMarkdownRenderer = defineComponent({
           EchartCodeBlock,
           pre: CodeBlock,
           TableRenderer,
+          ...(props.nodeRenderers ?? {}),
+          ...(props.componentsMap ?? {}),
         },
         Fragment,
         jsx,
@@ -195,6 +202,7 @@ const VueMarkdownRenderer = defineComponent({
 export default VueMarkdownRenderer as DefineComponent<{
   source: string;
   theme: "light" | "dark";
+  nodeRenderers?: Partial<Record<string, Component>>;
   componentsMap?: Record<string, Component>;
   codeBlockRenderer?: Component;
   echartRenderer?: Component;
@@ -206,5 +214,4 @@ export default VueMarkdownRenderer as DefineComponent<{
   remarkPlugins?: Plugin[];
   remarkRehypeOptions?: RemarkRehypeOptions;
   remarkGfmOptions?: RemarkGfmOptions;
-  rehypeSanitizeSchema?: Partial<Schema>;
 }>;
