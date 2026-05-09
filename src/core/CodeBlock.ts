@@ -74,24 +74,21 @@ export default defineComponent({
           language = langClass.replace(/^(language-|lang-)/, "");
         }
       }
-
+      // 使用toJsxRuntime将codeNode转换为Vue vnode
+      const highlightVnode = toJsxRuntime(codeNode, {
+        Fragment,
+        jsx: jsx,
+        jsxs: jsx,
+        passKeys: true,
+        passNode: true,
+      });
+      // 将 highlightVnode 包装在 pre 元素中
+      const wrappedVnode = h("pre", { class: props.node.className }, [
+        highlightVnode,
+      ]);
       // 检查是否有自定义的 codeBlockRenderer
       const customRenderer = proxyProps.codeBlockRenderer;
       if (customRenderer) {
-        // 使用toJsxRuntime将codeNode转换为Vue vnode
-        const highlightVnode = toJsxRuntime(codeNode, {
-          Fragment,
-          jsx: jsx,
-          jsxs: jsx,
-          passKeys: true,
-          passNode: true,
-        });
-
-        // 将 highlightVnode 包装在 pre 元素中
-        const wrappedVnode = h("pre", { class: props.node.className }, [
-          highlightVnode,
-        ]);
-
         return h(customRenderer, {
           language,
           highlightVnode: wrappedVnode,
@@ -99,13 +96,7 @@ export default defineComponent({
       }
 
       // 默认的代码块渲染
-      return h("pre", { class: props.node.className }, [
-        h(
-          "code",
-          { class: codeNode.properties?.className || null },
-          codeNode.children?.[0]?.value || ""
-        ),
-      ]);
+      return wrappedVnode;
     };
   },
 });
