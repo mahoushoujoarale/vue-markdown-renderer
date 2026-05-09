@@ -5,6 +5,7 @@ import {
   computed,
   type Component,
   type DefineComponent,
+  provide,
 } from "vue";
 import { Fragment } from "vue/jsx-runtime";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
@@ -13,11 +14,12 @@ import remarkRehype from "remark-rehype";
 import remarkGfm, { Options as RemarkGfmOptions } from "remark-gfm";
 import { unified, type Plugin } from "unified";
 import rehypeHighlight from "rehype-highlight";
-import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
+import rehypeSanitize from "rehype-sanitize";
 import type { Schema } from "hast-util-sanitize";
 import rehypeKatex from "rehype-katex";
 import rehypeExternalLinks from "rehype-external-links";
 import remarkMath from "remark-math";
+import deepmerge from "deepmerge";
 import "katex/dist/katex.min.css";
 import {
   remarkComponentCodeBlock,
@@ -27,10 +29,17 @@ import {
   remarkEchartCodeBlock,
   EchartCodeBlock,
 } from "./plugin/remarkEchartCodeBlock.js";
+import { remarkCompleteTable } from "./plugin/remarkCompleteTable.js";
+import { rehypeCodeBlock } from "./plugin/rehypeCodeBlock.js";
+import { rehypeTable } from "./plugin/rehypeTable.js";
 import { provideProxyProps } from "./useProxyProps.js";
-import CodeBlock from "./CodeBlock";
+import CodeBlock from "./CodeBlock.js";
+import { TableRenderer } from "./components/TableRenderer.js";
 import rehypeRaw from "rehype-raw";
 import { SegmentedParser } from "./segmenter.js";
+import { buildSanitizeSchema } from "./buildSanitizeSchema.js";
+import { markdownRendererOptionsKey } from "./symbol.js";
+import type { ResolvedRendererOptions } from "./apiOptions.js";
 
 interface RemarkRehypeOptions {
   [key: string]: any;
@@ -68,6 +77,12 @@ const VueMarkdownRenderer = defineComponent({
     echartRendererPlaceholder: {
       type: Object as PropType<Component>,
     },
+    mermaidRenderer: {
+      type: Object as PropType<Component>,
+    },
+    tableRenderer: {
+      type: Object as PropType<Component>,
+    },
     extraLangs: {
       type: Array as PropType<string[]>,
       default: () => [],
@@ -99,6 +114,23 @@ const VueMarkdownRenderer = defineComponent({
   setup(props) {
     provideProxyProps(props);
 
+    const resolvedOptions = computed<ResolvedRendererOptions>(() => ({
+      renderers: {
+        nodes: props.componentsMap ?? {},
+        components: props.componentsMap ?? {},
+        codeBlock: props.codeBlockRenderer,
+        mermaid: props.mermaidRenderer,
+        echart: props.echartRenderer
+          ? {
+              renderer: props.echartRenderer,
+              placeholder: props.echartRendererPlaceholder,
+            }
+          : undefined,
+        table: props.tableRenderer,
+      },
+    }));
+    provide(markdownRendererOptionsKey, resolvedOptions.value);
+
     const computedProcessor = computed(() => {
       const {
         rehypePlugins,
@@ -110,13 +142,17 @@ const VueMarkdownRenderer = defineComponent({
       return unified()
         .use(remarkParse)
         .use(remarkGfm, remarkGfmOptions)
+        .use(remarkCompleteTable)
         .use(remarkComponentCodeBlock)
         .use(remarkEchartCodeBlock)
         .use(remarkMath)
         .use(remarkPlugins)
         .use(remarkRehype, remarkRehypeOptions)
         .use(rehypeRaw)
-        .use(rehypeSanitize, { ...defaultSchema, ...rehypeSanitizeSchema })
+        .use(
+          rehypeSanitize,
+          deepmerge(buildSanitizeSchema(), rehypeSanitizeSchema ?? {})
+        )
         .use(rehypeKatex, {
           throwOnError: true,
           strict: false,
@@ -128,6 +164,8 @@ const VueMarkdownRenderer = defineComponent({
           ignoreMissing: true,
           aliases: { xml: "vue" },
         })
+        .use(rehypeCodeBlock)
+        .use(rehypeTable)
         .use(rehypePlugins);
     });
 
@@ -136,7 +174,12 @@ const VueMarkdownRenderer = defineComponent({
     const computedVNode = computed(() => {
       const children = parser.parse(props.source, computedProcessor.value);
       return toJsxRuntime({ type: "root", children } as any, {
-        components: { ComponentCodeBlock, EchartCodeBlock, pre: CodeBlock },
+        components: {
+          ComponentCodeBlock,
+          EchartCodeBlock,
+          pre: CodeBlock,
+          TableRenderer,
+        },
         Fragment,
         jsx,
         jsxs: jsx,
@@ -156,6 +199,8 @@ export default VueMarkdownRenderer as DefineComponent<{
   codeBlockRenderer?: Component;
   echartRenderer?: Component;
   echartRendererPlaceholder?: Component;
+  mermaidRenderer?: Component;
+  tableRenderer?: Component;
   extraLangs?: string[];
   rehypePlugins?: Plugin[];
   remarkPlugins?: Plugin[];

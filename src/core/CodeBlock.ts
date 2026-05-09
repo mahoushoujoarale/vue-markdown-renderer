@@ -1,24 +1,27 @@
-import { defineComponent, h } from "vue";
+import { defineComponent, h, inject } from "vue";
 import { useProxyProps } from "./useProxyProps.js";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import { Fragment } from "vue/jsx-runtime";
+import { MermaidRenderer } from "./components/MermaidRenderer.js";
+import { markdownRendererOptionsKey } from "./symbol.js";
 
-interface CodeNode {
+interface CodeElement {
   type: "element";
   tagName: string;
-  properties: {
-    className?: string | string[];
-  };
-  children: Array<{
-    type: "text";
-    value: string;
-  }>;
+  properties: { className?: string | string[] };
+  children: Array<{ type: "text"; value: string }>;
+}
+
+interface PreProperties {
+  className?: string | string[];
+  lang?: string;
+  code?: string;
+  meta?: string;
 }
 
 interface PreNode {
-  children: Array<CodeNode>;
-  classList: DOMTokenList;
-  className: string;
+  children: Array<CodeElement>;
+  properties: PreProperties;
 }
 
 function jsx(type: any, props: Record<any, any>, key: any) {
@@ -46,57 +49,68 @@ export default defineComponent({
   },
   setup(props) {
     const proxyProps = useProxyProps();
+    const options = inject(markdownRendererOptionsKey, null);
 
     return () => {
-      // 查找子元素中的 code 节点
+      const lang = props.node.properties?.lang as string | undefined;
+      const code = props.node.properties?.code as string | undefined;
+
+      if (lang === "mermaid" && options?.renderers?.mermaid !== undefined) {
+        const mermaidCode = code ?? "";
+        if (mermaidCode) {
+          return h(MermaidRenderer, { code: mermaidCode });
+        }
+      }
+
       const codeNode = props.node.children.find(
         (child) =>
           child && typeof child === "object" && child.tagName === "code"
-      ) as CodeNode | undefined;
+      ) as CodeElement | undefined;
 
       if (!codeNode) {
-        // 如果没有找到 code 节点，直接返回 pre 元素
-        return h("pre", { class: props.node.className });
+        return h("pre", { class: props.node.properties?.className as any });
       }
 
-      // 提取语言信息（可能来自 class 属性）
-      let language: string | null = null;
-      if (codeNode.properties?.className) {
-        const classNames = Array.isArray(codeNode.properties.className)
-          ? codeNode.properties.className
-          : [codeNode.properties.className];
-        const langClass = classNames.find(
-          (cls) =>
-            typeof cls === "string" &&
-            (cls.startsWith("language-") || cls.startsWith("lang-"))
-        );
-        if (langClass) {
-          language = langClass.replace(/^(language-|lang-)/, "");
-        }
-      }
-      // 使用toJsxRuntime将codeNode转换为Vue vnode
-      const highlightVnode = toJsxRuntime(codeNode, {
-        Fragment,
-        jsx: jsx,
-        jsxs: jsx,
-        passKeys: true,
-        passNode: true,
-      });
-      // 将 highlightVnode 包装在 pre 元素中
-      const wrappedVnode = h("pre", { class: props.node.className }, [
-        highlightVnode,
-      ]);
-      // 检查是否有自定义的 codeBlockRenderer
-      const customRenderer = proxyProps.codeBlockRenderer;
+      const customRenderer =
+        options?.renderers?.codeBlock ?? proxyProps.codeBlockRenderer;
+
       if (customRenderer) {
+        const highlightVnode = toJsxRuntime(codeNode, {
+          Fragment,
+          jsx,
+          jsxs: jsx,
+          passKeys: true,
+          passNode: true,
+        });
+
+        const wrappedVnode = h(
+          "pre",
+          { class: props.node.properties?.className as any },
+          [highlightVnode]
+        );
+
         return h(customRenderer, {
-          language,
+          language: lang,
+          code,
           highlightVnode: wrappedVnode,
         });
       }
 
-      // 默认的代码块渲染
-      return wrappedVnode;
+      const children = props.node.children.map((child) =>
+        toJsxRuntime(child, {
+          Fragment,
+          jsx,
+          jsxs: jsx,
+          passKeys: true,
+          passNode: true,
+        })
+      );
+
+      return h(
+        "pre",
+        { class: props.node.properties?.className as any },
+        children
+      );
     };
   },
 });

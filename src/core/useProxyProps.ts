@@ -1,7 +1,6 @@
 import { inject, provide } from "vue";
 import type { Component } from "vue";
-
-const configPropsKey = Symbol("configProps");
+import { configPropsKey } from "./symbol.js";
 
 export interface ProxyProps {
   componentsMap?: Record<string, Component>;
