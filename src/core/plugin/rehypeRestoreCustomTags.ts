@@ -3,6 +3,7 @@ import { visit } from "unist-util-visit";
 const TAG_MAP: Record<string, string> = {
   echartcodeblock: "EchartCodeBlock",
   componentcodeblock: "ComponentCodeBlock",
+  mermaidcodeblock: "MermaidCodeBlock",
 };
 
 export const rehypeRestoreCustomTags = () => (tree: any) => {

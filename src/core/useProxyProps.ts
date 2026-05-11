@@ -6,6 +6,8 @@ export interface ProxyProps {
   componentsMap?: Record<string, Component>;
   echartRenderer?: Component;
   echartRendererPlaceholder?: Component;
+  componentRendererPlaceholder?: Component;
+  mermaidRendererPlaceholder?: Component;
   codeBlockRenderer?: Component;
 }
 

@@ -13,6 +13,7 @@ import {
   codeBlockRenderer,
   echartRenderer,
   echartRendererPlaceholder,
+  componentRendererPlaceholder,
   mermaidRenderer,
   tableRenderer,
   remarkPlugins,
@@ -180,6 +181,7 @@ onUnmounted(() => {
                 :code-block-renderer="codeBlockRenderer"
                 :echart-renderer="echartRenderer"
                 :echart-renderer-placeholder="echartRendererPlaceholder"
+                :component-renderer-placeholder="componentRendererPlaceholder"
                 :mermaid-renderer="mermaidRenderer"
                 :table-renderer="tableRenderer"
                 :remark-plugins="remarkPlugins"

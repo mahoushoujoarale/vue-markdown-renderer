@@ -33,6 +33,8 @@ export const echartRenderer = EchartRenderer;
 
 export const echartRendererPlaceholder = Placeholder;
 
+export const componentRendererPlaceholder = Placeholder;
+
 export const mermaidRenderer = MermaidRenderer;
 
 export const tableRenderer = TableRenderer;

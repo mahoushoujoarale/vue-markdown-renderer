@@ -3,9 +3,25 @@ import { computed, defineComponent, h } from "vue";
 import { useProxyProps } from "../useProxyProps.js";
 
 export const remarkComponentCodeBlock = () => {
-  return (tree) => {
+  return (tree, file) => {
+    const unclosedLang = (file as any).data?.unclosedFenceLang;
     visit(tree, "code", (node, index, parent) => {
       if (node.lang === "component-json") {
+        // 流式场景：代码块未关闭时，直接展示 placeholder，避免不完整的 JSON 解析导致频繁重渲染
+        if (unclosedLang === "component-json") {
+          const placeholder = {
+            type: "ComponentCodeBlock",
+            data: {
+              hName: "ComponentCodeBlock",
+              hProperties: {
+                placeholder: "vue-mdr-default-component-placeholder-key",
+              },
+            },
+          };
+          parent.children.splice(index, 1, placeholder);
+          return;
+        }
+
         if (!node.meta) {
           try {
             const data = JSON.parse(node.value);
@@ -103,12 +119,12 @@ export const ComponentCodeBlock = defineComponent({
       const properties = props.node.properties;
       if (properties.placeholder) {
         const target = computedComponentsMap.value[properties.placeholder];
-        if (target === undefined) {
+        if (target === undefined && properties.placeholder !== "vue-mdr-default-component-placeholder-key") {
           console.warn(
             `${properties.placeholder} does not exist in componentsMap, the built-in 'Placeholder' will be used instead.`
           );
         }
-        return h(target || Placeholder);
+        return h(target || proxyProps.componentRendererPlaceholder || Placeholder);
       }
 
       const componentData = JSON.parse(properties.componentDataJson ?? "{}");

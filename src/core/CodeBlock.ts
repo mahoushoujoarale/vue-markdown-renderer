@@ -2,7 +2,6 @@ import { defineComponent, h, inject } from "vue";
 import { useProxyProps } from "./useProxyProps.js";
 import { toJsxRuntime } from "hast-util-to-jsx-runtime";
 import { Fragment } from "vue/jsx-runtime";
-import { MermaidRenderer } from "./components/MermaidRenderer.js";
 import { markdownRendererOptionsKey } from "./symbol.js";
 
 interface CodeElement {
@@ -54,13 +53,6 @@ export default defineComponent({
     return () => {
       const lang = props.node.properties?.lang as string | undefined;
       const code = props.node.properties?.code as string | undefined;
-
-      if (lang === "mermaid" && options?.renderers?.mermaid !== undefined) {
-        const mermaidCode = code ?? "";
-        if (mermaidCode) {
-          return h(MermaidRenderer, { code: mermaidCode });
-        }
-      }
 
       const codeNode = props.node.children.find(
         (child) =>

@@ -3,9 +3,25 @@ import { computed, defineComponent, h } from "vue";
 import { useProxyProps } from "../useProxyProps.js";
 
 export const remarkEchartCodeBlock = () => {
-  return (tree) => {
+  return (tree, file) => {
+    const unclosedLang = (file as any).data?.unclosedFenceLang;
     visit(tree, "code", (node, index, parent) => {
       if (node.lang === "echarts") {
+        // 流式场景：代码块未关闭时，直接展示 placeholder，避免不完整的 JSON 解析导致频繁重渲染
+        if (unclosedLang === "echarts") {
+          const placeholder = {
+            type: "EchartCodeBlock",
+            data: {
+              hName: "EchartCodeBlock",
+              hProperties: {
+                placeholder: "vue-mdr-default-echart-placeholder-key",
+              },
+            },
+          };
+          parent.children.splice(index, 1, placeholder);
+          return;
+        }
+
         try {
           const data = JSON.parse(node.value);
           const echartCodeBlock = {

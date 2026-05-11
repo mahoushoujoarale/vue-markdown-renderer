@@ -27,6 +27,10 @@ import {
   remarkEchartCodeBlock,
   EchartCodeBlock,
 } from "./plugin/remarkEchartCodeBlock.js";
+import {
+  remarkMermaidCodeBlock,
+  MermaidCodeBlock,
+} from "./plugin/remarkMermaidCodeBlock.js";
 import { remarkCompleteTable } from "./plugin/remarkCompleteTable.js";
 import { rehypeCodeBlock } from "./plugin/rehypeCodeBlock.js";
 import { rehypeTable } from "./plugin/rehypeTable.js";
@@ -81,7 +85,13 @@ const VueMarkdownRenderer = defineComponent({
     echartRendererPlaceholder: {
       type: Object as PropType<Component>,
     },
+    componentRendererPlaceholder: {
+      type: Object as PropType<Component>,
+    },
     mermaidRenderer: {
+      type: Object as PropType<Component>,
+    },
+    mermaidRendererPlaceholder: {
       type: Object as PropType<Component>,
     },
     tableRenderer: {
@@ -152,6 +162,7 @@ const VueMarkdownRenderer = defineComponent({
         .use(remarkCompleteTable)
         .use(remarkComponentCodeBlock)
         .use(remarkEchartCodeBlock)
+        .use(remarkMermaidCodeBlock)
         .use(remarkMath)
         .use(remarkPlugins)
         .use(remarkRehype, remarkRehypeOptions)
@@ -182,6 +193,7 @@ const VueMarkdownRenderer = defineComponent({
         components: {
           ComponentCodeBlock,
           EchartCodeBlock,
+          MermaidCodeBlock,
           pre: CodeBlock,
           TableRenderer,
           ...(props.nodeRenderers ?? {}),
@@ -207,7 +219,9 @@ export default VueMarkdownRenderer as DefineComponent<{
   codeBlockRenderer?: Component;
   echartRenderer?: Component;
   echartRendererPlaceholder?: Component;
+  componentRendererPlaceholder?: Component;
   mermaidRenderer?: Component;
+  mermaidRendererPlaceholder?: Component;
   tableRenderer?: Component;
   extraLangs?: string[];
   rehypePlugins?: Plugin[];

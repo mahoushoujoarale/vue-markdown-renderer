@@ -11,11 +11,12 @@ import type { Processor } from "unified";
  * Every completed segment (all but the last) is returned with a trailing "\n\n"
  * so that it parses correctly in isolation.
  */
-export function splitIntoSegments(source: string): string[] {
+export function splitIntoSegments(source: string): { segments: string[]; unclosedFenceLang?: string } {
   const lines = source.split("\n");
   const segments: string[] = [];
 
   let fenceMarker: string | null = null;
+  let fenceLang: string | null = null;
   let inMathBlock = false;
   let htmlBlockTag: string | null = null;
   let inHtmlComment = false;
@@ -54,6 +55,7 @@ export function splitIntoSegments(source: string): string[] {
         trimmed.slice(m[1].length).trim() === ""
       ) {
         fenceMarker = null;
+        fenceLang = null;
       }
     } else if (inMathBlock) {
       if (trimmed === "$$") inMathBlock = false;
@@ -66,6 +68,7 @@ export function splitIntoSegments(source: string): string[] {
       const fenceOpen = trimmed.match(/^(`{3,}|~{3,})/);
       if (fenceOpen) {
         fenceMarker = fenceOpen[1];
+        fenceLang = trimmed.slice(fenceOpen[1].length).trim().split(/\s+/)[0] || null;
       } else if (trimmed === "$$") {
         inMathBlock = true;
       } else if (trimmed.startsWith("<!--")) {
@@ -88,7 +91,7 @@ export function splitIntoSegments(source: string): string[] {
     segments.push(currentLines.join("\n"));
   }
 
-  return segments;
+  return { segments, unclosedFenceLang: fenceLang || undefined };
 }
 
 /**
@@ -107,7 +110,7 @@ export class SegmentedParser {
       this.cache.clear();
     }
 
-    const segments = splitIntoSegments(source);
+    const { segments, unclosedFenceLang } = splitIntoSegments(source);
     const allChildren: any[] = [];
     const activeKeys = new Set<string>();
 
@@ -120,7 +123,7 @@ export class SegmentedParser {
         allChildren.push(...this.cache.get(seg)!);
         activeKeys.add(seg);
       } else {
-        allChildren.push(...this.parseSegment(seg, processor));
+        allChildren.push(...this.parseSegment(seg, processor, unclosedFenceLang));
       }
     }
 
@@ -134,11 +137,13 @@ export class SegmentedParser {
 
   private parseSegment(
     source: string,
-    processor: Processor<any, any, any, any, any>
+    processor: Processor<any, any, any, any, any>,
+    unclosedFenceLang?: string
   ): any[] {
     if (!source.trim()) return [];
     const file = new VFile();
     file.value = source;
+    (file as any).data = { unclosedFenceLang };
     const tree = processor.runSync(processor.parse(file), file) as any;
     return tree.children ?? [];
   }
